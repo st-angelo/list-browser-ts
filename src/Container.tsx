@@ -4,26 +4,37 @@ import { useWritable, Writable } from 'react-use-svelte-store';
 import { ListResponse, ListBrowserShape, QueryData, ListResponseDetails, ClientFilter } from './metadata';
 import { useQuery } from '@apollo/client';
 import LoadingFakeText from './temp/components/loadingFakeText/LoadingFakeText';
-import cloneDeep from 'lodash.clonedeep';
 import { sort } from './functions';
 
-type ContainerProps<TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>> = {
+type ContainerProps<
+  TData extends object,
+  TFilters extends object,
+  TStore extends ListBrowserShape<TData, TFilters>,
+  TItemComponentProps extends object
+> = {
   store: Writable<TStore>;
   queryData: QueryData;
   keyProperty?: keyof TData | 'id';
-  ItemComponent: (props: { data: any }) => JSX.Element;
+  ItemComponent: (props: TItemComponentProps & { data: TData }) => JSX.Element;
+  itemComponentProps: TItemComponentProps;
   EmptyListComponent?: () => JSX.Element;
   clientFilter?: ClientFilter<TData, TFilters>;
 };
 
-const Container = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>({
+const Container = <
+  TData extends object,
+  TFilters extends object,
+  TStore extends ListBrowserShape<TData, TFilters> = ListBrowserShape<TData, TFilters>,
+  TItemComponentProps extends object = {}
+>({
   store,
   queryData,
   keyProperty = 'id',
   ItemComponent,
+  itemComponentProps,
   EmptyListComponent,
   clientFilter
-}: ContainerProps<TData, TFilters, TStore>) => {
+}: ContainerProps<TData, TFilters, TStore, TItemComponentProps>) => {
   const { t } = useTranslation();
   const [{ data: storeData, filters, pager }, , update] = useWritable(store);
 
@@ -43,12 +54,12 @@ const Container = <TData extends object, TFilters extends object, TStore extends
       let values: TData[];
       let total: number;
       if (clientBrowsing) {
-        const fromQuery = data?.[queryData.name] as (TData & { __typename: string })[];
-        values = (fromQuery || []).map(({ __typename, ...rest }) => cloneDeep(rest)) as TData[];
+        const fromQuery = data?.[queryData.name] as TData[];
+        values = fromQuery || [];
         total = values.length;
       } else {
-        const fromQuery = data?.[queryData.name] as ListResponseDetails<TData & { __typename: string }>;
-        values = (fromQuery?.values || []).map(({ __typename, ...rest }) => cloneDeep(rest)) as TData[];
+        const fromQuery = data?.[queryData.name] as ListResponseDetails<TData>;
+        values = fromQuery?.values || [];
         total = fromQuery?.total || 0;
       }
       update(prev => ({ ...prev, data: values, total, dirty: false }));
@@ -62,8 +73,7 @@ const Container = <TData extends object, TFilters extends object, TStore extends
     // Apply client filtering function
     const filteredData = (clientFilter && clientFilter(storeData, filters)) || storeData;
     // Apply sorting
-    if (pager.orderBy)
-      sort(filteredData, pager.orderBy, pager.direction);
+    if (pager.orderBy) sort(filteredData, pager.orderBy, pager.direction);
     // Update total
     update(prev => ({ ...prev, total: filteredData.length }));
     // Apply pagination
@@ -87,6 +97,7 @@ const Container = <TData extends object, TFilters extends object, TStore extends
             <>
               {data.map(item => (
                 <ItemComponent
+                  {...itemComponentProps}
                   data={item}
                   key={String(
                     (keyProperty === 'id'

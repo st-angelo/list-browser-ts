@@ -10,21 +10,10 @@ const useUtils = <TData extends object, TFilters extends object, TStore extends 
 
   const updateStore = useCallback(
     (path: string) => (value: any) => {
+      
       update(prev => {
         const newValue = { ...prev, filters: { ...prev.filters }, pager: { ...prev.pager, page: 1 } };
         setNestedProperty(newValue, path, value);
-        return newValue;
-      });
-    },
-    [update]
-  );
-
-  const updateData = useCallback(
-    (path: string, keyValue: any, key: keyof TData) => (value: any) => {
-      update(prev => {
-        const newValue = { ...prev, dirty: true };
-        const itemByKey = newValue.data.find(item => item[key] === keyValue);
-        if (itemByKey) setNestedProperty(itemByKey, path, value);
         return newValue;
       });
     },
@@ -51,7 +40,6 @@ const useUtils = <TData extends object, TFilters extends object, TStore extends 
     set,
     update,
     updateStore,
-    updateData,
     addOrUpdateActions
   };
 };

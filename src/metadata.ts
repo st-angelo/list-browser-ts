@@ -16,11 +16,11 @@ export type FilterShape<TFilters extends object> = {
 
 export type ListResponseDetails<TData> = {
   total: number;
-  values: TData[];
+  values: (TData & { __typename: string })[];
 };
 
 export type ListResponse<TData> = {
-  [key: string]: ListResponseDetails<TData> | TData[];
+  [key: string]: ListResponseDetails<TData> | (TData & { __typename: string })[];
 };
 
 export type QueryData<TData = any, TVariables extends OperationVariables = OperationVariables> = {
