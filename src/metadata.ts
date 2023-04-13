@@ -14,13 +14,15 @@ export type FilterShape<TFilters extends object> = {
   options?: SelectOption[];
 };
 
+export type ListResponseSimple<TData> = (TData & { __typename: string })[];
+
 export type ListResponseDetails<TData> = {
   total: number;
-  values: (TData & { __typename: string })[];
+  values: ListResponseSimple<TData>;
 };
 
 export type ListResponse<TData> = {
-  [key: string]: ListResponseDetails<TData> | (TData & { __typename: string })[];
+  [key: string]: ListResponseSimple<TData> | ListResponseDetails<TData>;
 };
 
 export type QueryData<TData = any, TVariables extends OperationVariables = OperationVariables> = {

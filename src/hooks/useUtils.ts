@@ -1,27 +1,16 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useWritable, Writable } from 'react-use-svelte-store';
 import { setNestedProperty } from '../functions';
 import { ListBrowserAction, ListBrowserShape } from '../metadata';
 
-const useUtils = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>(
-  _store: Writable<TStore>
+const useActions = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>(
+  store: Writable<TStore>,
+  actions: ListBrowserAction[]
 ) => {
-  const [store, set, update] = useWritable(_store);
+  const [, , update] = useWritable(store);
 
-  const updateStore = useCallback(
-    (path: string) => (value: any) => {
-      
-      update(prev => {
-        const newValue = { ...prev, filters: { ...prev.filters }, pager: { ...prev.pager, page: 1 } };
-        setNestedProperty(newValue, path, value);
-        return newValue;
-      });
-    },
-    [update]
-  );
-
-  const addOrUpdateActions = useCallback(
-    (actions: ListBrowserAction[]) =>
+  const addOrReplaceActions = useCallback(
+    () =>
       update(prev => {
         const newActions = actions.filter(action => !prev.actions.some(({ name }) => name === action.name));
         return {
@@ -32,15 +21,36 @@ const useUtils = <TData extends object, TFilters extends object, TStore extends 
           ]
         };
       }),
+    [actions, update]
+  );
+
+  useEffect(() => {
+    addOrReplaceActions();
+  }, [addOrReplaceActions]);
+};
+
+const useUtils = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>(
+  store: Writable<TStore>
+) => {
+  const [$store, set, update] = useWritable(store);
+
+  const updateStore = useCallback(
+    (path: string) => (value: any) => {
+      update(prev => {
+        const newValue = { ...prev, filters: { ...prev.filters }, pager: { ...prev.pager, page: 1 } };
+        setNestedProperty(newValue, path, value);
+        return newValue;
+      });
+    },
     [update]
   );
 
   return {
-    store,
+    $store,
     set,
     update,
     updateStore,
-    addOrUpdateActions
+    useActions: (actions: ListBrowserAction[]) => useActions<TData, TFilters, TStore>(store, actions)
   };
 };
 

@@ -1,10 +1,17 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWritable, Writable } from 'react-use-svelte-store';
-import { ListResponse, ListBrowserShape, QueryData, ListResponseDetails, ClientFilter } from './metadata';
+import {
+  ListResponse,
+  ListBrowserShape,
+  QueryData,
+  ListResponseDetails,
+  ClientFilter,
+  ListResponseSimple
+} from './metadata';
 import { useQuery } from '@apollo/client';
 import LoadingFakeText from './temp/components/loadingFakeText/LoadingFakeText';
-import { sort } from './functions';
+import { removeApolloTypename, sort } from './functions';
 
 type ContainerProps<
   TData extends object,
@@ -54,12 +61,12 @@ const Container = <
       let values: TData[];
       let total: number;
       if (clientBrowsing) {
-        const fromQuery = data?.[queryData.name] as TData[];
-        values = fromQuery || [];
+        const fromQuery = data?.[queryData.name] as ListResponseSimple<TData>;
+        values = removeApolloTypename(fromQuery);
         total = values.length;
       } else {
         const fromQuery = data?.[queryData.name] as ListResponseDetails<TData>;
-        values = fromQuery?.values || [];
+        values = removeApolloTypename(fromQuery?.values);
         total = fromQuery?.total || 0;
       }
       update(prev => ({ ...prev, data: values, total, dirty: false }));

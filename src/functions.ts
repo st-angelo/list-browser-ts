@@ -14,6 +14,14 @@ export const setNestedProperty = (target: any, path: string, value: any) => {
   _target[property] = value;
 };
 
+export const removeApolloTypename = <T>(data: (T & { __typename: string })[]) => {
+  if (!data) return [];
+  return data.map(({ __typename, ...rest }) => {
+    Object.freeze(rest);
+    return rest as T;
+  });
+};
+
 // #region Sorting
 
 export const byPropertiesOf =

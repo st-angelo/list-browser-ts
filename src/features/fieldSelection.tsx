@@ -1,5 +1,5 @@
 import { useWritable, Writable } from 'react-use-svelte-store';
-import { useState, useEffect, useMemo, useCallback, MouseEvent } from 'react';
+import { useState, useMemo, useCallback, MouseEvent } from 'react';
 import { Menu, MenuItem, FormControlLabel, Checkbox } from '@material-ui/core';
 import { FilterList, CheckBoxOutlineBlank, CheckBox } from '@material-ui/icons';
 import Action from '../Action';
@@ -25,9 +25,9 @@ type FieldSelectionActionProps<T extends WithFieldSelection> = {
   store: Writable<T>;
 };
 
-export const FieldSelectionAction = <T extends WithFieldSelection>({ store: _store }: FieldSelectionActionProps<T>) => {
+export const FieldSelectionAction = <T extends WithFieldSelection>({ store }: FieldSelectionActionProps<T>) => {
   const { t } = useTranslation();
-  const [store, , update] = useWritable(_store);
+  const [$store, , update] = useWritable(store);
   const [menuAnchorEl, setMenuAnchorEl] = useState<Element | null>(null);
 
   const close = useCallback(() => {
@@ -54,7 +54,7 @@ export const FieldSelectionAction = <T extends WithFieldSelection>({ store: _sto
     <>
       <Action icon={<FilterList />} tooltip={t('General.ChooseFields')} handler={open} />
       <Menu id="visible-fields-menu" anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={close}>
-        {store.fields.map(field => (
+        {$store.fields.map(field => (
           <MenuItem key={field.name}>
             <FormControlLabel
               control={
@@ -82,7 +82,7 @@ export const useFieldSelection = <
 >(
   store: Writable<TStore>
 ) => {
-  const { addOrUpdateActions } = useUtils<TData, TFilters, TStore>(store);
+  const { useActions } = useUtils<TData, TFilters, TStore>(store);
 
   const actions = useMemo(
     () => [
@@ -95,7 +95,5 @@ export const useFieldSelection = <
     [store]
   );
 
-  useEffect(() => {
-    addOrUpdateActions(actions);
-  }, [addOrUpdateActions, actions]);
+  useActions(actions);
 };

@@ -12,21 +12,21 @@ type PaginationProps<
 };
 
 const Pagination = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>({
-  store: _store
+  store
 }: PaginationProps<TData, TFilters, TStore>) => {
-  const store = useReadable(_store);
-  const { updateStore } = useUtils<TData, TFilters, TStore>(_store);
+  const $store = useReadable(store);
+  const { updateStore } = useUtils<TData, TFilters, TStore>(store);
 
   return (
     <PaginationComponent
-      loading={store.loading}
-      page={store.pager.page}
-      pageSize={store.pager.size}
-      totalCount={store.total}
+      loading={$store.loading}
+      page={$store.pager.page}
+      pageSize={$store.pager.size}
+      totalCount={$store.total}
       onChangePage={updateStore('pager.page')}
       onChangeRowsPerPage={updateStore('pager.size')}
-      onRefresh={store.refetch}
-      rowsPerPageOptions={store.rowsPerPageOptions}
+      onRefresh={$store.refetch}
+      rowsPerPageOptions={$store.rowsPerPageOptions}
     />
   );
 };

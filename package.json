@@ -1,7 +1,7 @@
 {
-  "name": "list-browser-ts",
+  "name": "@ts-private/list-browser-ts",
   "private": true,
-  "version": "0.14.3",
+  "version": "0.15.0",
   "scripts": {
     "prebuild": "rimraf build",
     "build": "npm run prebuild && npm run build:tsc && npm run build:copy-files",

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Collapse, Grid, FormControlLabel, Checkbox } from '@material-ui/core';
 import { ArrowUpward, ArrowDownward, RotateLeft } from '@material-ui/icons';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReadable, useWritable, Writable } from 'react-use-svelte-store';
 import Action from './Action';
@@ -18,17 +18,17 @@ type HeaderProps<TData extends object, TFilters extends object, TStore extends L
 };
 
 const Header = <TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>>({
-  store: _store,
+  store,
   filters,
   FiltersComponent
 }: HeaderProps<TData, TFilters, TStore>) => {
   const { t } = useTranslation();
-  const [store, , update] = useWritable(_store);
+  const [$store, , update] = useWritable(store);
   const [showFilters, setShowFilters] = useState(false);
 
-  const { updateStore, addOrUpdateActions } = useUtils<TData, TFilters, TStore>(_store);
+  const { updateStore, useActions } = useUtils<TData, TFilters, TStore>(store);
 
-  const hasActions = useMemo(() => store.actions.length > 0, [store.actions.length]);
+  const hasActions = useMemo(() => $store.actions.length > 0, [$store.actions.length]);
 
   const resetFilters = useCallback(() => {
     update(prev => {
@@ -66,9 +66,7 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
     [showFilters, resetFilters]
   );
 
-  useEffect(() => {
-    addOrUpdateActions(actions);
-  }, [addOrUpdateActions, actions]);
+  useActions(actions);
 
   return (
     <Grid container spacing={2} alignItems={'center'}>
@@ -79,7 +77,7 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
             onChange={updateStore('filters.search')}
             label={t('General.Search')}
             name="search"
-            value={store.filters.search}
+            value={$store.filters.search}
             inputProps={{ maxLength: 255 }}
           />
         </Grid>
@@ -89,8 +87,8 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
             onChange={ev => updateStore('pager.orderBy')(ev.target.value)}
             label={t('General.OrderBy')}
             name="orderBy"
-            value={store.pager.orderBy}
-            options={store.orderByFields}
+            value={$store.pager.orderBy}
+            options={$store.orderByFields}
           />
         </Grid>
         <Grid item xs={12} lg={3}>
@@ -99,14 +97,14 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
             onChange={ev => updateStore('pager.direction')(ev.target.value)}
             label={t('General.Direction')}
             name="direction"
-            value={store.pager.direction}
+            value={$store.pager.direction}
             options={getDirectionOptions()}
           />
         </Grid>
       </Grid>
       {hasActions && (
         <Grid container item xs={12} lg={4} justifyContent={'flex-end'}>
-          {store.actions
+          {$store.actions
             .filter(action => action.visible)
             .map(action => (
               <React.Fragment key={action.name}>{action.component}</React.Fragment>
@@ -114,7 +112,7 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
         </Grid>
       )}
       <Collapse in={showFilters} style={{ width: '100%' }}>
-        {filters && <InternalFiltersComponent<TData, TFilters, TStore> filters={filters} store={_store} />}
+        {filters && <InternalFiltersComponent<TData, TFilters, TStore> filters={filters} store={store} />}
         {!filters && FiltersComponent && <FiltersComponent />}
       </Collapse>
     </Grid>
@@ -138,10 +136,10 @@ const InternalFiltersComponent = <
   TStore extends ListBrowserShape<TData, TFilters>
 >({
   filters,
-  store: _store
+  store
 }: InternalFiltersComponentProps<TData, TFilters, TStore>) => {
-  const store = useReadable(_store);
-  const { updateStore } = useUtils<TData, TFilters, TStore>(_store);
+  const $store = useReadable(store);
+  const { updateStore } = useUtils<TData, TFilters, TStore>(store);
 
   return (
     <Grid container item xs={12} spacing={2}>
@@ -155,7 +153,7 @@ const InternalFiltersComponent = <
                 type="text"
                 name={filter.name}
                 label={filter.label}
-                value={store.filters[filter.name]}
+                value={$store.filters[filter.name]}
                 onChange={updateStore(`filters.${filter.name}`)}
               />
             );
@@ -167,7 +165,7 @@ const InternalFiltersComponent = <
                 type="number"
                 name={filter.name}
                 label={filter.label}
-                value={store.filters[filter.name]}
+                value={$store.filters[filter.name]}
                 onChange={value => updateStore(`filters.${filter.name}`)(parseInt(value))}
               />
             );
@@ -177,7 +175,7 @@ const InternalFiltersComponent = <
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={Boolean(store.filters[filter.name])}
+                    checked={Boolean($store.filters[filter.name])}
                     onChange={ev => updateStore(`filters.${filter.name}`)(ev.target.checked)}
                     name={filter.name}
                     color="primary"
@@ -194,7 +192,7 @@ const InternalFiltersComponent = <
                 onChange={ev => updateStore(`filters.${filter.name}`)(ev.target.value)}
                 label={filter.label}
                 name={filter.name}
-                value={store.filters[filter.name]}
+                value={$store.filters[filter.name]}
                 options={filter.options || []}
               />
             );
