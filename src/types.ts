@@ -1,6 +1,4 @@
 import { ReactNode } from 'react';
-import i18next from 'i18next';
-import { DocumentNode, OperationVariables, QueryHookOptions, TypedDocumentNode } from '@apollo/client';
 
 export type SelectOption = {
   value: any;
@@ -25,17 +23,6 @@ export type ListResponse<TData> = {
   [key: string]: ListResponseSimple<TData> | ListResponseDetails<TData>;
 };
 
-export type QueryData<TData = any, TVariables extends OperationVariables = OperationVariables> = {
-  name: string;
-  query: DocumentNode | TypedDocumentNode<TData, TVariables>;
-  options?: QueryHookOptions<TData, TVariables>;
-};
-
-export type ClientFilter<TData, TFilters extends object> = (
-  data: TData[],
-  filters: ListBrowserFilters<TFilters>
-) => TData[];
-
 // #region List browser types
 
 export type ListBrowserPager<TData> = {
@@ -53,7 +40,6 @@ export type ListBrowserAction = {
   name: string;
   visible: boolean;
   component: ReactNode;
-  basic?: boolean;
 };
 
 type ListBrowserOrderByField<TData> = {
@@ -78,13 +64,9 @@ export class ListBrowserShape<TData, TFilters extends object> {
   pager: ListBrowserPager<TData>;
   orderByFields: ListBrowserOrderByField<TData>[];
   rowsPerPageOptions: number[];
+  initialFilters: ListBrowserFilters<TFilters>;
   filters: ListBrowserFilters<TFilters>;
   actions: ListBrowserAction[];
-  dirty: boolean;
-
-  initialFilters: ListBrowserFilters<TFilters>;
-
-  refetch: (variables?: Partial<OperationVariables>) => any;
 
   constructor(options: ListBrowserOptions<TData, TFilters>) {
     this.data = [];
@@ -99,25 +81,19 @@ export class ListBrowserShape<TData, TFilters extends object> {
     };
     this.orderByFields = options?.orderByFields || [];
     this.rowsPerPageOptions = options?.rowsPerPageOptions || [10, 25, 50, 100];
+    this.initialFilters = { search: '', ...options.filters };
     this.filters = { search: '', ...options.filters };
     this.actions = options?.actions || [];
-    this.dirty = false;
-
-    this.initialFilters = { search: '', ...options.filters };
-
-    this.refetch = () => {};
   }
 }
 
 // #endregion
 
-export const getDirectionOptions = () => [
-  {
-    value: 'asc' as const,
-    label: i18next.t('General.Ascending')
-  },
-  {
-    value: 'desc' as const,
-    label: i18next.t('General.Descending')
-  }
-];
+export enum ListBrowserText {
+  NoEntries = 'NoEntries',
+  Search = 'Search',
+  OrderBy = 'OrderBy',
+  Direction = 'Direction',
+  Ascending = 'Ascending',
+  Descending = 'Descending'
+}

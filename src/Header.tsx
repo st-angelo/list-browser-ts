@@ -1,15 +1,13 @@
-import React from 'react';
-import { Collapse, Grid, FormControlLabel, Checkbox } from '@material-ui/core';
-import { ArrowUpward, ArrowDownward, RotateLeft } from '@material-ui/icons';
-import { useMemo, useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useContext } from 'react';
+import { Collapse, Grid, FormControlLabel, Checkbox } from '@mui/material';
+import { ArrowUpward, ArrowDownward, RotateLeft } from '@mui/icons-material';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useReadable, useWritable, Writable } from 'react-use-svelte-store';
 import Action from './Action';
-import useUtils from './hooks/useUtils';
-import { FilterShape, getDirectionOptions, ListBrowserShape } from './metadata';
-import Select from './temp/components/select/Select';
-import DebouncedTextField from './temp/components/textField/DebouncedTextField';
-import cloneDeep from 'lodash.clonedeep';
+import useUtils from './hooks';
+import { FilterShape, ListBrowserShape, ListBrowserText } from './types';
+import { ListBrowserContext } from './context';
+import { Autocomplete, TextField } from '@totalsoft/rocket-ui';
 
 type HeaderProps<TData extends object, TFilters extends object, TStore extends ListBrowserShape<TData, TFilters>> = {
   store: Writable<TStore>;
@@ -22,17 +20,31 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
   filters,
   FiltersComponent
 }: HeaderProps<TData, TFilters, TStore>) => {
-  const { t } = useTranslation();
   const [$store, , update] = useWritable(store);
+  const { textResolver } = useContext(ListBrowserContext);
+
   const [showFilters, setShowFilters] = useState(false);
 
-  const { updateStore, useActions } = useUtils<TData, TFilters, TStore>(store);
+  const { updatePath, updateActions } = useUtils<TData, TFilters, TStore>(store);
 
   const hasActions = useMemo(() => $store.actions.length > 0, [$store.actions.length]);
+  const directionOptions = useMemo(
+    () => [
+      {
+        value: 'asc' as const,
+        label: textResolver(ListBrowserText.Ascending)
+      },
+      {
+        value: 'desc' as const,
+        label: textResolver(ListBrowserText.Descending)
+      }
+    ],
+    [textResolver]
+  );
 
   const resetFilters = useCallback(() => {
     update(prev => {
-      return { ...prev, filters: cloneDeep(prev.initialFilters) };
+      return { ...prev, filters: structuredClone(prev.initialFilters) };
     });
   }, [update]);
 
@@ -66,39 +78,44 @@ const Header = <TData extends object, TFilters extends object, TStore extends Li
     [showFilters, resetFilters]
   );
 
-  useActions(actions);
+  useEffect(() => updateActions(actions), [actions, updateActions]);
 
   return (
     <Grid container spacing={2} alignItems={'center'}>
       <Grid container item xs={12} lg={hasActions ? 8 : 12} spacing={2}>
         <Grid item xs={12} lg={6}>
-          <DebouncedTextField
+          <TextField
             fullWidth
-            onChange={updateStore('filters.search')}
-            label={t('General.Search')}
+            onChange={updatePath('filters.search', true)}
+            label={textResolver(ListBrowserText.Search)}
             name="search"
+            debounceBy={400}
             value={$store.filters.search}
             inputProps={{ maxLength: 255 }}
           />
         </Grid>
         <Grid item xs={12} lg={3}>
-          <Select
+          <Autocomplete
             fullWidth
-            onChange={ev => updateStore('pager.orderBy')(ev.target.value)}
-            label={t('General.OrderBy')}
-            name="orderBy"
+            simpleValue
+            onChange={updatePath('pager.orderBy')}
+            label={textResolver(ListBrowserText.OrderBy)}
             value={$store.pager.orderBy}
             options={$store.orderByFields}
+            valueKey="value"
+            labelKey="label"
           />
         </Grid>
         <Grid item xs={12} lg={3}>
-          <Select
+          <Autocomplete
             fullWidth
-            onChange={ev => updateStore('pager.direction')(ev.target.value)}
-            label={t('General.Direction')}
-            name="direction"
+            simpleValue
+            onChange={updatePath('pager.direction')}
+            label={textResolver(ListBrowserText.Direction)}
             value={$store.pager.direction}
-            options={getDirectionOptions()}
+            options={directionOptions}
+            valueKey="value"
+            labelKey="label"
           />
         </Grid>
       </Grid>
@@ -139,7 +156,7 @@ const InternalFiltersComponent = <
   store
 }: InternalFiltersComponentProps<TData, TFilters, TStore>) => {
   const $store = useReadable(store);
-  const { updateStore } = useUtils<TData, TFilters, TStore>(store);
+  const { updatePath } = useUtils<TData, TFilters, TStore>(store);
 
   return (
     <Grid container item xs={12} spacing={2}>
@@ -148,25 +165,27 @@ const InternalFiltersComponent = <
         switch (filter.type) {
           case 'text':
             inputComponent = (
-              <DebouncedTextField
+              <TextField
                 fullWidth
                 type="text"
+                debounceBy={400}
                 name={filter.name}
                 label={filter.label}
-                value={$store.filters[filter.name]}
-                onChange={updateStore(`filters.${filter.name}`)}
+                value={($store.filters[filter.name] as string) || ''}
+                onChange={updatePath(`filters.${filter.name}`, true)}
               />
             );
             break;
           case 'number':
             inputComponent = (
-              <DebouncedTextField
+              <TextField
                 fullWidth
-                type="number"
+                isNumeric
+                debounceBy={400}
                 name={filter.name}
                 label={filter.label}
-                value={$store.filters[filter.name]}
-                onChange={value => updateStore(`filters.${filter.name}`)(parseInt(value))}
+                value={($store.filters[filter.name] as number) || ''}
+                onChange={updatePath(`filters.${filter.name}`, true)}
               />
             );
             break;
@@ -176,7 +195,7 @@ const InternalFiltersComponent = <
                 control={
                   <Checkbox
                     checked={Boolean($store.filters[filter.name])}
-                    onChange={ev => updateStore(`filters.${filter.name}`)(ev.target.checked)}
+                    onChange={ev => updatePath(`filters.${filter.name}`, true)(ev.target.checked)}
                     name={filter.name}
                     color="primary"
                   />
@@ -187,13 +206,15 @@ const InternalFiltersComponent = <
             break;
           case 'select':
             inputComponent = (
-              <Select
+              <Autocomplete
                 fullWidth
-                onChange={ev => updateStore(`filters.${filter.name}`)(ev.target.value)}
+                simpleValue
+                onChange={updatePath(`filters.${filter.name}`, true)}
                 label={filter.label}
-                name={filter.name}
-                value={$store.filters[filter.name]}
+                value={$store.filters[filter.name] || ''}
                 options={filter.options || []}
+                valueKey="value"
+                labelKey="label"
               />
             );
             break;

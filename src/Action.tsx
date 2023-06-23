@@ -1,4 +1,4 @@
-import { Tooltip, IconButton } from '@material-ui/core';
+import { Tooltip, IconButton } from '@mui/material';
 import { ReactNode } from 'react';
 
 type ActionProps = {
@@ -6,7 +6,7 @@ type ActionProps = {
   handler: (event: any) => void;
   tooltip: string;
   disabled?: boolean;
-}
+};
 
 const Action = ({ icon, handler, tooltip, disabled = false }: ActionProps) => {
   return (

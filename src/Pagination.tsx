@@ -1,7 +1,7 @@
 import { useReadable, Writable } from 'react-use-svelte-store';
-import { ListBrowserShape } from './metadata';
-import useUtils from './hooks/useUtils';
-import PaginationComponent from './temp/components/pagination/Pagination';
+import { Pagination as PaginationComponent } from '@totalsoft/rocket-ui';
+import { ListBrowserShape } from './types';
+import useUtils from './hooks';
 
 type PaginationProps<
   TData extends object,
@@ -15,17 +15,17 @@ const Pagination = <TData extends object, TFilters extends object, TStore extend
   store
 }: PaginationProps<TData, TFilters, TStore>) => {
   const $store = useReadable(store);
-  const { updateStore } = useUtils<TData, TFilters, TStore>(store);
+  const { updatePath } = useUtils<TData, TFilters, TStore>(store);
 
   return (
     <PaginationComponent
       loading={$store.loading}
-      page={$store.pager.page}
+      page={$store.pager.page - 1}
       pageSize={$store.pager.size}
-      totalCount={$store.total}
-      onChangePage={updateStore('pager.page')}
-      onChangeRowsPerPage={updateStore('pager.size')}
-      onRefresh={$store.refetch}
+      count={$store.total}
+      onPageChange={page => updatePath('pager.page')(page + 1)}
+      onRowsPerPageChange={updatePath('pager.size')}
+      //onRefresh={$store.refetch}
       rowsPerPageOptions={$store.rowsPerPageOptions}
     />
   );

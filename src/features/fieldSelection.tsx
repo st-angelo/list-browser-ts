@@ -1,11 +1,10 @@
 import { useWritable, Writable } from 'react-use-svelte-store';
-import { useState, useMemo, useCallback, MouseEvent } from 'react';
-import { Menu, MenuItem, FormControlLabel, Checkbox } from '@material-ui/core';
-import { FilterList, CheckBoxOutlineBlank, CheckBox } from '@material-ui/icons';
+import { useState, useMemo, useEffect, useCallback, MouseEvent } from 'react';
+import { Menu, MenuItem, FormControlLabel, Checkbox } from '@mui/material';
+import { FilterList, CheckBoxOutlineBlank, CheckBox } from '@mui/icons-material';
 import Action from '../Action';
-import { useTranslation } from 'react-i18next';
-import useUtils from '../hooks/useUtils';
-import { ListBrowserShape } from '../metadata';
+import useUtils from '../hooks';
+import { ListBrowserShape } from '../types';
 
 type FieldShape = {
   name: string;
@@ -26,7 +25,6 @@ type FieldSelectionActionProps<T extends WithFieldSelection> = {
 };
 
 export const FieldSelectionAction = <T extends WithFieldSelection>({ store }: FieldSelectionActionProps<T>) => {
-  const { t } = useTranslation();
   const [$store, , update] = useWritable(store);
   const [menuAnchorEl, setMenuAnchorEl] = useState<Element | null>(null);
 
@@ -52,7 +50,7 @@ export const FieldSelectionAction = <T extends WithFieldSelection>({ store }: Fi
 
   return (
     <>
-      <Action icon={<FilterList />} tooltip={t('General.ChooseFields')} handler={open} />
+      <Action icon={<FilterList />} tooltip={'Choose fields'} handler={open} />
       <Menu id="visible-fields-menu" anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={close}>
         {$store.fields.map(field => (
           <MenuItem key={field.name}>
@@ -66,7 +64,7 @@ export const FieldSelectionAction = <T extends WithFieldSelection>({ store }: Fi
                   onChange={() => toggleFieldSelection(field.name)}
                 />
               }
-              label={t(field.label)}
+              label={field.label}
             />
           </MenuItem>
         ))}
@@ -82,7 +80,7 @@ export const useFieldSelection = <
 >(
   store: Writable<TStore>
 ) => {
-  const { useActions } = useUtils<TData, TFilters, TStore>(store);
+  const { updateActions } = useUtils<TData, TFilters, TStore>(store);
 
   const actions = useMemo(
     () => [
@@ -95,5 +93,5 @@ export const useFieldSelection = <
     [store]
   );
 
-  useActions(actions);
+  useEffect(() => updateActions(actions), [actions, updateActions]);
 };
